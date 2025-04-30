@@ -1,85 +1,114 @@
-const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, ActivityType, REST, Routes, SlashCommandBuilder } = require('discord.js');
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const startXFeed = require('./xfeed.js'); // ✅ Tweet paylaşım modülü
+const startXFeed = require('./xfeed.js'); // ✅ Tweet embed modülü
 
-// Discord bot client
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
-// Express sunucusu (Render'ı uyanık tutmak için)
+// Express sunucusu (Render için)
 const app = express();
 const port = 3000;
-
 app.get('/', (req, res) => {
   const imagePath = path.join(__dirname, 'index.html');
   res.sendFile(imagePath);
 });
-
 app.listen(port, () => {
-  console.log('\x1b[36m[ SERVER ]\x1b[0m', '\x1b[32m SH : http://localhost:' + port + ' ✅\x1b[0m');
+  console.log('[ SERVER ] SH : http://localhost:' + port + ' ✅');
 });
 
-// Status mesajları
 const statusMessages = ["🎉 Join our Katana Giveaway! ⚔️"];
 const statusTypes = ['dnd', 'idle'];
 let currentStatusIndex = 0;
 let currentTypeIndex = 0;
 
-// Discord'a giriş
 async function login() {
   try {
     await client.login(process.env.TOKEN);
-    console.log('\x1b[36m[ LOGIN ]\x1b[0m', `\x1b[32mLogged in as: ${client.user.tag} ✅\x1b[0m`);
-    console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[35mBot ID: ${client.user.id} \x1b[0m`);
-    console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[34mConnected to ${client.guilds.cache.size} server(s) \x1b[0m`);
+    console.log('[ LOGIN ] Logged in as:', client.user.tag);
   } catch (error) {
-    console.error('\x1b[31m[ ERROR ]\x1b[0m', 'Failed to log in:', error);
+    console.error('[ ERROR ] Failed to login:', error);
     process.exit(1);
   }
 }
 
-// Status güncelleme
 function updateStatus() {
   const currentStatus = statusMessages[currentStatusIndex];
   const currentType = statusTypes[currentTypeIndex];
-
   client.user.setPresence({
     activities: [{ name: currentStatus, type: ActivityType.Custom }],
     status: currentType,
   });
-
-  console.log('\x1b[33m[ STATUS ]\x1b[0m', `Updated status to: ${currentStatus} (${currentType})`);
-
+  console.log('[ STATUS ]', `Updated to: ${currentStatus} (${currentType})`);
   currentStatusIndex = (currentStatusIndex + 1) % statusMessages.length;
   currentTypeIndex = (currentTypeIndex + 1) % statusTypes.length;
 }
 
-// Heartbeat logu
 function heartbeat() {
   setInterval(() => {
-    console.log('\x1b[35m[ HEARTBEAT ]\x1b[0m', `Bot is alive at ${new Date().toLocaleTimeString()}`);
+    console.log('[ HEARTBEAT ] Bot is alive at', new Date().toLocaleTimeString());
   }, 30000);
 }
 
-// Discord ready olunca
-client.once('ready', () => {
-  console.log('\x1b[36m[ INFO ]\x1b[0m', `\x1b[34mPing: ${client.ws.ping} ms \x1b[0m`);
+client.once('ready', async () => {
+  console.log('[ INFO ] Ping:', client.ws.ping, 'ms');
   updateStatus();
   setInterval(updateStatus, 10000);
   heartbeat();
-  startXFeed(client); // ✅ Twitter embed sistemi başlat
+  startXFeed(client); // 🔁 Twitter otomatik paylaşım
+
+  // 🔧 Slash komutlarını yükle
+  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+  try {
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      {
+        body: [
+          new SlashCommandBuilder()
+            .setName('send')
+            .setDescription('Belirtilen kanala mesaj gönderir.')
+            .addChannelOption(option =>
+              option.setName('channel')
+                .setDescription('Gönderilecek kanal')
+                .setRequired(true))
+            .addStringOption(option =>
+              option.setName('message')
+                .setDescription('Gönderilecek mesaj')
+                .setRequired(true))
+        ]
+      }
+    );
+    console.log('[ SLASH ] /send komutu başarıyla yüklendi.');
+  } catch (error) {
+    console.error('[ SLASH ERROR ]', error);
+  }
+});
+
+// 🔧 /send komutu işlemesi
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+  if (interaction.commandName === 'send') {
+    const channel = interaction.options.getChannel('channel');
+    const message = interaction.options.getString('message');
+
+    try {
+      await channel.send(message);
+      await interaction.reply({ content: `✅ Mesaj gönderildi: ${channel}`, ephemeral: true });
+    } catch (err) {
+      console.error('[ SEND ERROR ]', err);
+      await interaction.reply({ content: '❌ Mesaj gönderilemedi.', ephemeral: true });
+    }
+  }
 });
 
 login();
 
-// Kendini pingleyen sistem (Render için hayati)
+// 🔁 Render için kendine ping atma sistemi
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
 setInterval(() => {
-  fetch('https://rns-7dme.onrender.com') // 🔁 kendi Render URL'in
+  fetch('https://rns-7dme.onrender.com')
     .then(() => console.log('[ KEEP-ALIVE ] Ping gönderildi'))
     .catch(err => console.error('[ KEEP-ALIVE ERROR ]', err));
-}, 5 * 60 * 1000); // 5 dakikada bir
+}, 5 * 60 * 1000);
