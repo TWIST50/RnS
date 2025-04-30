@@ -81,3 +81,9 @@ setInterval(() => {
     .then(() => console.log('[ KEEP-ALIVE ] Ping gönderildi'))
     .catch(err => console.error('[ KEEP-ALIVE ERROR ]', err));
 }, 5 * 60 * 1000); // Her 5 dakikada bir
+
+const startXFeed = require('./xfeed.js');
+client.once('ready', () => {
+  ...
+  startXFeed(client); // 🔁 Otomatik tweet paylaşımı başlatılır
+});
