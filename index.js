@@ -103,6 +103,18 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
+client.on('guildMemberAdd', async (member) => {
+  const role = member.guild.roles.cache.find(r => r.name === 'Member');
+  if (role) {
+    try {
+      await member.roles.add(role);
+      console.log(`[AUTO-ROLE] ${member.user.tag} -> Member rolü verildi.`);
+    } catch (err) {
+      console.error('[AUTO-ROLE ERROR]', err.message);
+    }
+  }
+});
+
 login();
 
 // 🔁 Render için kendine ping atma sistemi
