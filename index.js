@@ -5,7 +5,7 @@ const path = require('path');
 const startXFeed = require('./xfeed.js'); // ✅ Tweet embed modülü
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
 // Express sunucusu (Render için)
