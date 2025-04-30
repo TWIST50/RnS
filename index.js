@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const startXFeed = require('./xfeed.js'); // ✅ Tweet paylaşım modülü
 
 // Discord bot client
 const client = new Client({
@@ -69,6 +70,7 @@ client.once('ready', () => {
   updateStatus();
   setInterval(updateStatus, 10000);
   heartbeat();
+  startXFeed(client); // ✅ Twitter embed sistemi başlat
 });
 
 login();
@@ -77,13 +79,7 @@ login();
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 setInterval(() => {
-  fetch('https://rns-7dme.onrender.com')
+  fetch('https://rns-7dme.onrender.com') // 🔁 kendi Render URL'in
     .then(() => console.log('[ KEEP-ALIVE ] Ping gönderildi'))
     .catch(err => console.error('[ KEEP-ALIVE ERROR ]', err));
-}, 5 * 60 * 1000); // Her 5 dakikada bir
-
-const startXFeed = require('./xfeed.js');
-client.once('ready', () => {
-  ...
-  startXFeed(client); // 🔁 Otomatik tweet paylaşımı başlatılır
-});
+}, 5 * 60 * 1000); // 5 dakikada bir
