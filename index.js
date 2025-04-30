@@ -81,6 +81,16 @@ client.once('ready', () => {
 
 login();
 
+const fetch = require('node-fetch');
+
+// Her 5 dakikada bir kendine HTTP ping atar
+setInterval(() => {
+  fetch('https://senin-render-linkin.onrender.com')
+    .then(() => console.log('[ KEEP-ALIVE ] Ping gönderildi'))
+    .catch(err => console.error('[ KEEP-ALIVE ERROR ]', err));
+}, 5 * 60 * 1000); // 5 dakikada bir
+
+
   
 /*
 
